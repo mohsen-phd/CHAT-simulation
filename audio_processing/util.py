@@ -3,7 +3,6 @@
 import librosa
 import numpy as np
 from loguru import logger
-from scipy.io import wavfile
 from scipy.signal import resample
 
 

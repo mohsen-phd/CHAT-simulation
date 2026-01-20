@@ -9,16 +9,13 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from enum import Enum
 
-import nltk
 import numpy as np
-from nltk.stem import WordNetLemmatizer
 
 from audio_processing.noise import Babble, Noise, WhiteNoise
 from audio_processing.util import convert_to_specific_db_spl, read_wav_file
 from hearing_test.util import british_to_american, expand_contractions, lemmatizer
 from stimuli_generator.questions import (
     ASLQuestions,
-    DigitQuestions,
     CHATQuestions,
     FAAFQuestions,
 )

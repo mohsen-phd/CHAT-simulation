@@ -1,0 +1,12 @@
+torch==2.5
+torchvision==0.20
+torchaudio==2.5
+colorama==0.4.6
+loguru==0.6.0
+sounddevice==0.4.6
+speechbrain==0.5.13
+openai==1.54.5
+nltk==3.8.1
+transformers==4.36.2
+pyaudio==0.2.13
+librosa==0.10.2.post1
