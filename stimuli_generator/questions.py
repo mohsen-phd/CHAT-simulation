@@ -6,7 +6,7 @@ import random
 from abc import ABC, abstractmethod
 import re
 from openai import OpenAI
-from hearing_test.util import expand_contractions, lemmatizer, remove_contractions
+from hearing_test.util import lemmatizer, remove_contractions
 from loguru import logger
 
 
@@ -56,58 +56,6 @@ class Questions(ABC):
         with open(src) as f:
             data = json.load(f)
         return data
-
-
-class DigitQuestions(Questions):
-    """Class for modeling digit-in-noise test questions."""
-
-    def __init__(self) -> None:
-        """Initialize the questions object by storing the text of the question."""
-        self.vocab_list = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
-
-        super().__init__()
-
-    def get_stimuli(self, test_mode: str) -> tuple[list[str], list[str], str]:
-        """Generate a sample stimuli.
-
-          Generate a sample stimuli consist of three words
-          by randomly selecting from the list of vocab.
-
-        Args:
-            test_mode (str): is it real test or practice test. ('test' or 'practice')
-
-        Returns:
-            tuple[list[str], list[str]]: stimuli ID and the main words in the stimuli. The prompt to show the user when
-            asking for a response.
-        """
-        self.main_words = random.sample(self.vocab_list, 3)
-        self.question = "The number is " + " ".join(str(self.main_words))
-        self.question_id = self.main_words
-
-        response_getting_prompt = "Please enter the digits you heard."
-
-        return self.question_id, self.main_words, response_getting_prompt
-
-    def check_answer(self, answer: list[str]) -> bool:
-        """Check the given number is the same as the one  presented to the patient.
-
-        Args:
-            answer (list[str]): The patient's response.
-
-        Returns:
-            bool: Is a match or not.
-        """
-        answer = [item.lower() for item in answer]
-
-        correct_words = []
-        for word in answer:
-            if word.lower() in self.main_words:
-                correct_words.append(word)
-
-        if correct_words == self.main_words:
-            return True
-        else:
-            return False
 
 
 class ASLQuestions(Questions):

@@ -7,13 +7,6 @@ test:
   reversal_limit: 10
   record_save_dir: "records"
   hearing-test:
-    DIN:
-      noise:
-        type: babble #[white, babble]
-        src: "/Users/user/Documents/Projects/PhD/Wordnet-Hearing-Test/audio_processing/noise/babble.wav"
-      stimuli-recordings-natural: "/Users/user/Documents/Projects/PhD/Wordnet-Hearing-Test/media/digit_recordings/natural/22k"
-      stimuli-recordings-tts: "/Users/user/Documents/Projects/PhD/Wordnet-Hearing-Test/media/digit_recordings/tts/22k"
-
     ASL:
       noise:
         type: babble #[white, babble]
