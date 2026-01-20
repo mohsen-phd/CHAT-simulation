@@ -7,12 +7,12 @@ import time
 from colorama import Fore
 from loguru import logger
 
-from get_response.asr import ASR, SimpleASR, SpeechBrainASR, Whisper, FBWav2Vec2
+from get_response.asr import ASR, Whisper
 from get_response.base import CaptureResponse
 from get_response.cli import CLI
 from get_response.recorder import Recorder
 from hearing_test.test_logic import SpeechInNoise
-from hearing_test.test_types import ASL, CHAT, DIN, FAAF
+from hearing_test.test_types import ASL, CHAT, FAAF
 
 
 class TestManager(ABC):
@@ -141,17 +141,10 @@ class ASRTestManager(TestManager):
         Returns:
             ASR: The asr engine.
         """
-        if self.conf["ml"]["asr_type"] == "SpeechBrain":
-            return SpeechBrainASR(
-                source=self.conf["ml"]["asr_source"],
-                save_dir=self.conf["ml"]["asr_save_dir"],
-            )
-        elif self.conf["ml"]["asr_type"] == "SimpleASR":
-            return SimpleASR()
-        elif self.conf["ml"]["asr_type"] == "whisper":
+
+        if self.conf["ml"]["asr_type"] == "whisper":
             return Whisper()
-        elif self.conf["ml"]["asr_type"] == "wav2vec2":
-            return FBWav2Vec2()
+
         raise NotImplementedError
 
     def get_response(self, prompt: str) -> list[str]:
