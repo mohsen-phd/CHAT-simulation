@@ -13,3 +13,4 @@ pyaudio==0.2.13
 librosa==0.10.2.post1
 accelerate==1.1.1
 pyclarity==0.8.0
+openpyxl==3.1.5

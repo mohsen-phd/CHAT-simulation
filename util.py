@@ -8,6 +8,7 @@ from loguru import logger
 from yaml import YAMLError
 
 from audio_processing.noise import Noise, convert_to_specific_db_spl
+from audio_processing.util import calculate_db_spl, rms_amplitude
 from hearing_test.test_manager import ASRTestManager, CliTestManager, TestManager
 from hearing_test.test_types import TestTypes
 from vocalizer.utils import play_sound
@@ -34,14 +35,14 @@ def read_conf(src: str = "config.yaml") -> dict:
             raise exc
 
 
-def play_stimuli(
+def get_stimuli_signal(
     hearing_test: TestTypes,
     stimuli: list[str],
     noise: Noise,
     signal_level: float,
     noise_level: float,
-):
-    """Play the stimuli to the patient.
+) -> np.ndarray:
+    """generate the stimuli and return the sound wave.
 
     Args:
         hearing_test (TestTypes): hearing test object. is used to get the sound wave.
@@ -49,6 +50,8 @@ def play_stimuli(
         noise (Noise): object to generate noise.
         signal_level (float): The level of the signal.
         noise_level (float): The level of the noise.
+    Returns:
+        np.ndarray: The generated sound wave.
 
     """
     sample_rate, sound_wave_dict = hearing_test.get_sound(stimuli)
@@ -63,9 +66,13 @@ def play_stimuli(
             constant_values=(0, 0),
         )
         noise_signal = noise.generate_noise(sound_wave_noisy, noise_level)
-        sound_wave_noisy = convert_to_specific_db_spl(sound_wave_noisy, signal_level)
+        sound_wave_noisy = convert_to_specific_db_spl(
+            sound_wave_noisy / rms_amplitude(sound_wave_noisy), signal_level
+        )
+        calculate_db_spl(sound_wave_noisy)
+        calculate_db_spl(noise_signal)
         noisy_wave = sound_wave_noisy + noise_signal
-        play_sound(wave=noisy_wave, fs=sample_rate)
+        return noisy_wave
 
     if "clean" in sound_wave_dict:
         sound_wave_clean = np.pad(
@@ -75,7 +82,7 @@ def play_stimuli(
             constant_values=(0, 0),
         )
         sound_wave_clean = convert_to_specific_db_spl(sound_wave_clean, signal_level)
-        play_sound(wave=sound_wave_clean, fs=sample_rate)
+        return sound_wave_clean
 
 
 def get_test_manager(configs: dict) -> TestManager:

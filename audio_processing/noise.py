@@ -94,7 +94,10 @@ class Babble(Noise):
         Returns:
             np.ndarray: Generated noise in with the same length as the signal.
         """
-        scaled_noise = convert_to_specific_db_spl(self._noise, noise_db)
+        # todo: change back
+        scaled_noise = convert_to_specific_db_spl(
+            self._noise / (rms_amplitude(self._noise)), noise_db
+        )
         signal_len = len(signal)
         noise_start_point = random.randint(0, len(scaled_noise) - signal_len)
         return scaled_noise[noise_start_point : noise_start_point + signal_len]

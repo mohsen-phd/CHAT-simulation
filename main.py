@@ -8,13 +8,16 @@ from colorama import Fore
 from loguru import logger
 
 from hearing_test.test_logic import SpeechInNoise
-from util import get_test_manager, play_stimuli, read_conf, save_results
+from util import get_test_manager, get_stimuli_signal, read_conf, save_results
 
 logger.remove(0)
 # logger.add(sys.stderr, level="DEBUG")
 logger.add(sys.stderr, level="INFO")
 
 import warnings
+import pandas as pd
+from agents.participant import Participant
+import math
 
 warnings.filterwarnings("ignore")
 
@@ -24,41 +27,28 @@ def convert_test_name_presentation_to_config(test_name_presentation: str) -> str
     return test_name_presentation.replace(" ", "_").lower()
 
 
-def preparation() -> dict[str, str]:
+def preparation(id: int) -> dict[str, str]:
     """Prepare the test and logging system.
+    Args:
+        id (int): participant id.
 
     Returns:
         dict: dictionary containing the custom configurations.
     """
-    participant_id = input(Fore.GREEN + "Enter The ID: ")
-    test_number = input(Fore.GREEN + "Enter test number: ")
-    test_name = input(Fore.GREEN + "Enter test name: ") or "asl"
-    test_name_presentation = input(Fore.GREEN + "Enter test name for showing: ")
 
-    response_capturing_mode = input(
-        Fore.GREEN + "Enter response capturing mode (asr or cli): " or "cli"
-    )
-    vocalization_mode = input(
-        Fore.GREEN + "Enter vocalization mode (tts or recorded): " or "tts"
-    )
-    signal_processing = input(
-        Fore.GREEN
-        + "Enter processing mode ((n)one, (l)owpass, (m)odulation matching or (b)oth): "
-    )
-    test_mode = input(Fore.GREEN + "Enter the test mode (test or practice): ")
+    # todo:replace the following lines with the above lines
+    participant_id = id
+    test_number = 1
+    response_capturing_mode = "asr"
+    test_name = "chat"
+    test_name_presentation = "chat"
+    vocalization_mode = "tts"
+    test_mode = "test"
+    signal_processing = "n"
 
     # todo: remove the following lines after testing
     if test_name == "asl" and response_capturing_mode == "cli":
         logger.add(sys.stderr, level="DEBUG")
-
-    # todo:replace the following lines with the above lines
-    # participant_id = 999
-    # test_number = 3
-    # response_capturing_mode = "cli"
-    # test_name = "asl"
-    # test_name_presentation = "asl"
-    # vocalization_mode = "recorded"
-    # test_mode = "test"
 
     save_dir = f"records/{participant_id}"
     os.makedirs(save_dir, exist_ok=True)
@@ -66,7 +56,6 @@ def preparation() -> dict[str, str]:
 
     logger.add(f"{save_dir}/{test_name_presentation}/out.log")
     logger.debug(f"\nParticipant ID: {participant_id}")
-    input(Fore.RED + "Press enter to start the test ")
     custom_config = {
         "participant_id": participant_id,
         "save_dir": save_dir,
@@ -104,10 +93,12 @@ def read_configs(custom_config: dict) -> dict:
     return configs
 
 
-def main():
+def run_test(id: int, hearing_level: dict, chat_result: dict):
     """Code entry point."""
-    custom_config = preparation()
+    custom_config = preparation(id)
     configs = read_configs(custom_config)
+    participant = Participant(id, hearing_level)
+
     manager = get_test_manager(configs)
     track_results = {}
     snr_db = manager.start_snr
@@ -115,21 +106,17 @@ def main():
     iteration = 1
     signal_level = 65
     noise_level = 60
-    while not manager.hearing_test.stop_condition():
+    while not manager.hearing_test.stop_condition() or iteration <= 60:
         os.system("cls" if os.name == "nt" else "clear")
         this_round = {}
         this_round["snr"] = snr_db
-        termios.tcflush(sys.stdin, termios.TCIOFLUSH)
-        print(Fore.RED + "Press Enter for the next round")
-        input()
+
         stimuli_id, stimuli_text, response_getting_prompt = (
             manager.test_type.stimuli_generator.get_stimuli(
                 test_mode=configs["test_mode"]
             )
         )
 
-        os.system("cls" if os.name == "nt" else "clear")
-        print(Fore.YELLOW + "Please listen")
         logger.debug(f"{iteration} :The stimuli is: {stimuli_text}")
         this_round["stimuli"] = stimuli_text
 
@@ -137,7 +124,7 @@ def main():
             signal_level, noise_level, snr_db
         )
         logger.debug(f"Signal level: {signal_level}, Noise level: {noise_level}")
-        play_stimuli(
+        sound_wave = get_stimuli_signal(
             manager.test_type,
             stimuli_id,
             manager.noise,
@@ -145,9 +132,10 @@ def main():
             noise_level=noise_level,
         )
 
-        transcribe = manager.get_response(response_getting_prompt)
-        this_round["response"] = transcribe
-        matched = manager.test_type.stimuli_generator.check_answer(transcribe)
+        response = participant.give_response(sound_wave)
+
+        this_round["response"] = response
+        matched = manager.test_type.stimuli_generator.check_answer(response)
         logger.debug(f"Matched: {matched} \n")
         this_round["matched"] = matched
         if matched:
@@ -169,7 +157,7 @@ def main():
     track_results[iteration] = {
         "snr": snr_db,
         "stimuli": stimuli_text,
-        "response": transcribe,
+        "response": response,
         "matched": matched,
     }
     logger.debug(f"Final SRT: {manager.hearing_test.srt} \n")
@@ -180,4 +168,28 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    resultd_df = pd.read_excel("combined_pta_chat_results.xlsx")
+    included_ids = [39]
+    for row in resultd_df.itertuples():
+        if row.ID not in included_ids:
+            continue
+        if math.isnan(row.pta_8000):
+            continue
+        id = row.ID
+        hearing_level = {
+            500: row.pta_500,
+            1000: row.pta_1000,
+            2000: row.pta_2000,
+            4000: row.pta_4000,
+            8000: row.pta_8000,
+        }
+
+        # hearing_level = {
+        #     500: 15,
+        #     1000: 35,
+        #     2000: 70,
+        #     4000: 75,
+        #     8000: 110,
+        # }
+        chat_result = {"avg": row.chat_avg, "chat_1": row.chat_1, "chat_2": row.chat_2}
+        run_test(id, hearing_level, chat_result)
